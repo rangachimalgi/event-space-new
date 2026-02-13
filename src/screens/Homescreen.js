@@ -1,26 +1,27 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import HallTile from '../components/HallTile';
+import { View, Text, Image, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import HallTile from "../components/HallTile";
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
+  const handlePress = (hall) => {
+    navigation.navigate("CreateEvent", { hall });
+  };
   const halls = [
-    { id: 'BIG_1', name: 'Big Hall 1', status: 'Available', icon: 'business' },
-    { id: 'BIG_2', name: 'Big Hall 2', status: 'Booked', icon: 'business' },
-    { id: 'MINI_1', name: 'Mini Hall 1', status: 'Available', icon: 'home' },
-    { id: 'MINI_2', name: 'Mini Hall 2', status: 'Available', icon: 'home' },
+    { id: "BIG_1", name: "Big Hall 1", status: "Available", icon: "business" },
+    { id: "BIG_2", name: "Big Hall 2", status: "Booked", icon: "business" },
+    { id: "MINI_1", name: "Mini Hall 1", status: "Available", icon: "home" },
+    { id: "MINI_2", name: "Mini Hall 2", status: "Available", icon: "home" },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
-      
       {/* Identity Section */}
       <View style={styles.identity}>
         <Text style={styles.title}>Sri Raghavendra Swamy</Text>
 
-        <Image
-          source={require('../../assets/logo.png')}
-          style={styles.logo}
-        />
+        <Image source={require("../../assets/logo.png")} style={styles.logo} />
       </View>
 
       {/* Tiles */}
@@ -31,7 +32,7 @@ export default function HomeScreen() {
             title={hall.name}
             subtitle={hall.status}
             icon={hall.icon}
-            onPress={() => console.log(hall)}
+            onPress={() => handlePress(hall)}
           />
         ))}
       </View>
@@ -45,13 +46,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   identity: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: "700",
+    color: "#0f172a",
     marginBottom: 10,
   },
   logo: {
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
 });

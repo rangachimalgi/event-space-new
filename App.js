@@ -1,12 +1,12 @@
 import { NavigationContainer } from '@react-navigation/native';
-import TabNavigator from './src/navigation/TabNavigator.js';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import StackNavigator from './src/navigation/StackNavigator';
 
 export default function App() {
   return (
     <SafeAreaProvider>
     <NavigationContainer>
-      <TabNavigator />
+      <StackNavigator />
     </NavigationContainer>
     </SafeAreaProvider>
   );
