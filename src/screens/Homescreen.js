@@ -9,17 +9,19 @@ export default function HomeScreen() {
     navigation.navigate("CreateEvent", { hall });
   };
   const halls = [
-    { id: "BIG_1", name: "Big Hall 1", status: "Available", icon: "business" },
-    { id: "BIG_2", name: "Big Hall 2", status: "Booked", icon: "business" },
-    { id: "MINI_1", name: "Mini Hall 1", status: "Available", icon: "home" },
-    { id: "MINI_2", name: "Mini Hall 2", status: "Available", icon: "home" },
-  ];
+  { id: "BIG_1", name: "Vrindavana Main Hall", subname: "2nd Floor", icon: "business" },
+  { id: "BIG_2", name: "Vrindavana Mini Hall", subname: "2nd Floor", icon: "business" },
+  { id: "MINI_1", name: "Kamadhenu Main Hall", subname: "3rd Floor", icon: "business" },
+  { id: "MINI_2", name: "Kamadhenu Mini Hall", subname: "3rd Floor", icon: "business" },
+];
+
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Identity Section */}
       <View style={styles.identity}>
         <Text style={styles.title}>Sri Raghavendra Swamy</Text>
+        <Text style={styles.subtitle}>Matha, Mantralayam</Text>
 
         <Image source={require("../../assets/logo.png")} style={styles.logo} />
       </View>
@@ -30,6 +32,7 @@ export default function HomeScreen() {
           <HallTile
             key={hall.id}
             title={hall.name}
+            subname={hall.subname} 
             subtitle={hall.status}
             icon={hall.icon}
             onPress={() => handlePress(hall)}

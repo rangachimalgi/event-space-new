@@ -2,7 +2,7 @@ import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function HallTile({ title, subtitle, icon, onPress }) {
+export default function HallTile({ title,subname, icon, onPress }) {
   return (
     <TouchableOpacity style={styles.wrapper} onPress={onPress}>
       <LinearGradient
@@ -13,7 +13,7 @@ export default function HallTile({ title, subtitle, icon, onPress }) {
           <Ionicons name={icon} size={28} color="#fff" />
 
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={styles.subname}>{subname}</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     margin: '1%',
   },
   tile: {
-    height: 140,
+    height: 150,
     borderRadius: 16,
     padding: 16,
     justifyContent: 'space-between',
@@ -37,9 +37,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 10,
   },
-  subtitle: {
-    color: '#cbd5f5',
+  subname: {
+     color: '#fff',
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: '600',
+    marginTop: 10,
   },
 });
