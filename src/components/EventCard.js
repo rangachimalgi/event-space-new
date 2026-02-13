@@ -1,58 +1,81 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function EventCard({ event, onEdit, onDelete }) {
+export default function EventCard({ event, onEdit, onDelete, onPress }) {
   return (
-    <View style={styles.card}>
-      <View>
-        <Text style={styles.title}>{event.hall}</Text>
-        <Text style={styles.subtitle}>{event.name}</Text>
-        <Text style={styles.date}>{event.date}</Text>
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      
+      {/* Top Row */}
+      <View style={styles.topRow}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{event.hall}</Text>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
+            <Ionicons name="create-outline" size={18} color="#2563eb" />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={onDelete} style={styles.iconBtn}>
+            <Ionicons name="trash-outline" size={18} color="#dc2626" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
-          <Ionicons name="create-outline" size={20} color="#2563eb" />
-        </TouchableOpacity>
+      {/* Main Content */}
+      <Text style={styles.title}>{event.name}</Text>
+      <Text style={styles.date}>{event.date}</Text>
 
-        <TouchableOpacity onPress={onDelete} style={styles.iconBtn}>
-          <Ionicons name="trash-outline" size={20} color="#dc2626" />
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 14,
     marginBottom: 12,
+
+    elevation: 3,
+  },
+
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
 
-    // shadow
-    elevation: 2,
+  badge: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
+
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+
   title: {
-    fontWeight: '700',
     fontSize: 16,
+    fontWeight: '700',
+    marginTop: 10,
   },
-  subtitle: {
-    color: '#475569',
-    marginTop: 2,
-  },
+
   date: {
     color: '#64748b',
     marginTop: 4,
-    fontSize: 12,
+    fontSize: 13,
   },
+
   actions: {
     flexDirection: 'row',
   },
+
   iconBtn: {
-    marginLeft: 12,
+    marginLeft: 10,
   },
 });
