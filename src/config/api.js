@@ -10,35 +10,61 @@ import { Platform } from 'react-native';
 const IP_ADDRESS = '192.168.1.3'; // Change this to your computer's IP for physical devices
 const PORT = '8000';
 
-// Production API URL - Update this with your deployed backend URL
-// You can set EXPO_PUBLIC_API_URL in Netlify environment variables
-// Or update the fallback URL below with your Render backend URL
+// Production API URL - Your Render backend URL
+// For native Android/iOS apps: Just update this URL directly
+// For web builds: You can also set EXPO_PUBLIC_API_URL environment variable
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://event-space-new.onrender.com/api';
 
+// Force production mode (set to true to always use production API)
+// Set to true if you want to always use Render backend, even in development
+const FORCE_PRODUCTION = true; // Changed to true to always use production API
+
 const getBaseURL = () => {
-  // Check if we're in production (web build)
-  if (process.env.NODE_ENV === 'production' || !__DEV__) {
+  // Check if we should force production mode
+  if (FORCE_PRODUCTION) {
+    console.log('🔧 FORCE_PRODUCTION is enabled - using production API');
     return PRODUCTION_API_URL;
   }
 
-  // Development mode
-  if (__DEV__) {
-    // Android emulator uses 10.0.2.2 to access localhost
-    if (Platform.OS === 'android') {
-      return `http://192.168.1.3:${PORT}/api`;
-    }
-    // iOS simulator uses localhost, physical devices use IP
-    if (Platform.OS === 'ios') {
-      return `http://${IP_ADDRESS}:${PORT}/api`;
-    }
-    // Web uses localhost
-    return `http://localhost:${PORT}/api`;
+  // Check environment variable first
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    console.log('🌐 Using EXPO_PUBLIC_API_URL from environment:', process.env.EXPO_PUBLIC_API_URL);
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // For release builds (APK/IPA), __DEV__ will be false
+  // For production web builds, NODE_ENV will be 'production'
+  const isProduction = process.env.NODE_ENV === 'production' || !__DEV__;
+  
+  console.log('🔍 Environment check:', {
+    __DEV__,
+    NODE_ENV: process.env.NODE_ENV,
+    Platform: Platform.OS,
+    isProduction,
+  });
+
+  if (isProduction) {
+    console.log('✅ Production mode detected - using:', PRODUCTION_API_URL);
+    return PRODUCTION_API_URL;
+  }
+
+  // Development mode (only when __DEV__ is true)
+  let devURL;
+  if (Platform.OS === 'android') {
+    devURL = `http://192.168.1.3:${PORT}/api`;
+  } else if (Platform.OS === 'ios') {
+    devURL = `http://${IP_ADDRESS}:${PORT}/api`;
+  } else {
+    devURL = `http://localhost:${PORT}/api`;
   }
   
-  // Fallback to production
-  return PRODUCTION_API_URL;
+  console.log('🛠️ Development mode - using:', devURL);
+  return devURL;
 };
 
 const API_BASE_URL = getBaseURL();
+
+// Log the final API URL being used
+console.log('📍 Final API Base URL:', API_BASE_URL);
 
 export default API_BASE_URL;

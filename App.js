@@ -8,7 +8,11 @@ import { Platform } from 'react-native';
 console.log('🚀 App Starting...');
 console.log('📱 Platform:', Platform.OS);
 console.log('🌐 API Base URL:', API_BASE_URL);
-console.log('💡 Make sure server is running on port 8000');
+if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('192.168')) {
+  console.log('⚠️ Using development server - make sure local server is running');
+} else {
+  console.log('✅ Using production backend:', API_BASE_URL);
+}
 
 export default function App() {
   return (
