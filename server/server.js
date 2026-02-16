@@ -11,8 +11,11 @@ import eventRoutes from './routes/eventRoutes.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from root directory
-dotenv.config({ path: join(__dirname, '..', '.env') });
+// Load environment variables
+// In production (Render), env vars are set directly, so we only load .env in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: join(__dirname, '..', '.env') });
+}
 
 const app = express();
 const PORT = process.env.PORT || 8000;

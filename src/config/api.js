@@ -11,7 +11,9 @@ const IP_ADDRESS = '192.168.1.3'; // Change this to your computer's IP for physi
 const PORT = '8000';
 
 // Production API URL - Update this with your deployed backend URL
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://your-backend-url.com/api';
+// You can set EXPO_PUBLIC_API_URL in Netlify environment variables
+// Or update the fallback URL below with your Render backend URL
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://event-space-new.onrender.com/api';
 
 const getBaseURL = () => {
   // Check if we're in production (web build)
