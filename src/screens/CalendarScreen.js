@@ -1,41 +1,114 @@
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import API_BASE_URL from "../config/api";
+
+// Color constants based on booking count
+const COLORS = {
+  GREEN: "#22c55e",   // 0-1 bookings (Available)
+  YELLOW: "#f59e0b",  // 2-3 bookings (Medium)
+  RED: "#ff4444",     // 4+ bookings (Full)
+};
 
 export default function CalendarScreen({ navigation }) {
-  const events = {
-    // 🔴 Full (Red)
-    "2026-02-05": { color: "#ff4444" },
-    "2026-02-24": { color: "#ff4444" },
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [markedDates, setMarkedDates] = useState({});
 
-    // 🟢 Available (Green)
-    "2026-02-08": { color: "#22c55e" },
-    "2026-02-12": { color: "#22c55e" },
-    "2026-02-27": { color: "#22c55e" },
+  // Fetch events from API
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching events for calendar...");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    // 🟠 Medium (Orange) - Replaced the black/grey ones here
-    "2026-02-17": { color: "#f59e0b" },
-    "2026-02-18": { color: "#f59e0b" },
-    "2026-02-25": { color: "#f59e0b" },
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Events fetched for calendar:", data.length);
+      setEvents(data);
+      
+      // Process events to count bookings per date
+      processEventsForCalendar(data);
+    } catch (error) {
+      console.error("Error fetching events for calendar:", error);
+      setEvents([]);
+      setMarkedDates({});
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getMarkedDates = () => {
+  // Process events and create marked dates based on booking count
+  const processEventsForCalendar = (eventsData) => {
+    const dateCounts = {};
+    
+    // Count events per date
+    eventsData.forEach((event) => {
+      const eventDate = new Date(event.date);
+      // Format date as YYYY-MM-DD
+      const dateKey = eventDate.toISOString().split('T')[0];
+      
+      if (dateCounts[dateKey]) {
+        dateCounts[dateKey]++;
+      } else {
+        dateCounts[dateKey] = 1;
+      }
+    });
+
+    // Create marked dates with colors based on count
     const marked = {};
-    Object.keys(events).forEach((date) => {
+    Object.keys(dateCounts).forEach((date) => {
+      const count = dateCounts[date];
+      let color;
+      
+      if (count <= 1) {
+        color = COLORS.GREEN; // 0-1 bookings: Green (Available)
+      } else if (count <= 3) {
+        color = COLORS.YELLOW; // 2-3 bookings: Yellow (Medium)
+      } else {
+        color = COLORS.RED; // 4+ bookings: Red (Full)
+      }
+
       marked[date] = {
         customStyles: {
           container: {
-            backgroundColor: events[date].color,
-            borderRadius: 12, // More rounded like the image
+            backgroundColor: color,
+            borderRadius: 12,
             elevation: 2,
           },
           text: { color: "#fff", fontWeight: "700" },
         },
       };
     });
-    return marked;
+
+    setMarkedDates(marked);
   };
+
+  // Fetch events when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents();
+    }, [])
+  );
+
+  // Also fetch on mount
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,10 +125,16 @@ export default function CalendarScreen({ navigation }) {
       </View>
 
       <View style={styles.calendarWrapper}>
-        <Calendar
-          markingType={"custom"}
-          markedDates={getMarkedDates()}
-          theme={{
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#EF7B02" />
+            <Text style={styles.loadingText}>Loading calendar...</Text>
+          </View>
+        ) : (
+          <Calendar
+            markingType={"custom"}
+            markedDates={markedDates}
+            theme={{
             backgroundColor: "#ffffff",
             calendarBackground: "#ffffff",
 
@@ -77,23 +156,24 @@ export default function CalendarScreen({ navigation }) {
             textDayHeaderFontWeight: "700", // Made bolder to show color better
             textDayFontSize: 14,
             textMonthFontSize: 20,
-          }}
-          style={styles.calendar}
-        />
+            }}
+            style={styles.calendar}
+          />
+        )}
         <View style={styles.legendContainer}>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: "#2ecc71" }]} />
-            <Text style={styles.legendText}>Available</Text>
+            <View style={[styles.dot, { backgroundColor: COLORS.GREEN }]} />
+            <Text style={styles.legendText}>Available (1)</Text>
           </View>
 
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: "#f59e0b" }]} />
-            <Text style={styles.legendText}>Medium</Text>
+            <View style={[styles.dot, { backgroundColor: COLORS.YELLOW }]} />
+            <Text style={styles.legendText}>Medium (2-3)</Text>
           </View>
 
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: "#ff7675" }]} />
-            <Text style={styles.legendText}>Full</Text>
+            <View style={[styles.dot, { backgroundColor: COLORS.RED }]} />
+            <Text style={styles.legendText}>Full (4+)</Text>
           </View>
         </View>
       </View>
@@ -164,5 +244,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748b",
     fontWeight: "500",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 300,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: "#64748b",
+    fontSize: 14,
   },
 });

@@ -21,7 +21,7 @@ export default function HomeScreen() {
       {/* Identity Section */}
       <View style={styles.identity}>
         <Text style={styles.title}>Sri Raghavendra Swamy</Text>
-        <Text style={styles.subtitle}>Matha, Mantralayam</Text>
+        <Text style={styles.subtitle}>Vrindavana Samithi Kachiguda, Hyderabad</Text>
 
         <Image source={require("../../assets/logo.png")} style={styles.logo} />
       </View>
