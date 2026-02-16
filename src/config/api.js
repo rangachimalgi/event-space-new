@@ -10,24 +10,31 @@ import { Platform } from 'react-native';
 const IP_ADDRESS = '192.168.1.3'; // Change this to your computer's IP for physical devices
 const PORT = '8000';
 
+// Production API URL - Update this with your deployed backend URL
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://your-backend-url.com/api';
+
 const getBaseURL = () => {
+  // Check if we're in production (web build)
+  if (process.env.NODE_ENV === 'production' || !__DEV__) {
+    return PRODUCTION_API_URL;
+  }
+
+  // Development mode
   if (__DEV__) {
     // Android emulator uses 10.0.2.2 to access localhost
     if (Platform.OS === 'android') {
       return `http://192.168.1.3:${PORT}/api`;
     }
     // iOS simulator uses localhost, physical devices use IP
-    // For iOS simulator, use localhost. For physical device, use IP_ADDRESS
     if (Platform.OS === 'ios') {
-      // Check if running on simulator (you can detect this better if needed)
-      // For now, we'll use IP for physical devices
       return `http://${IP_ADDRESS}:${PORT}/api`;
     }
     // Web uses localhost
     return `http://localhost:${PORT}/api`;
   }
-  // Production API
-  return 'https://your-production-api.com/api';
+  
+  // Fallback to production
+  return PRODUCTION_API_URL;
 };
 
 const API_BASE_URL = getBaseURL();
