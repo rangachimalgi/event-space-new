@@ -6,10 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import API_BASE_URL from "../config/api";
 
 export default function CreateEventScreen({ route, navigation }) {
   const { hall } = route.params;
@@ -25,10 +28,79 @@ export default function CreateEventScreen({ route, navigation }) {
   const [showPicker, setShowPicker] = useState(false);
   const [balance, setBalance] = useState("");
   const [advance, setAdvance] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    console.log({ hall, name, phone, notes, date });
-    navigation.goBack();
+  const handleSave = async () => {
+    // Validation
+    if (!name.trim() || !phone.trim()) {
+      Alert.alert("Error", "Please fill in devotee name and phone number");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const eventData = {
+        hall: {
+          id: hall.id,
+          name: hall.name,
+          subname: hall.subname,
+        },
+        name: name.trim(),
+        phone: phone.trim(),
+        purohitName: purohitName.trim(),
+        purohitPhone: purohitphone.trim(),
+        catererName: caterername.trim(),
+        catererPhone: catererphone.trim(),
+        advance: advance.trim(),
+        balance: balance.trim(),
+        notes: notes.trim(),
+        date: date.toISOString(),
+      };
+
+      console.log("Creating event at:", `${API_BASE_URL}/events`);
+
+      // Add timeout to fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create event: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("Event created successfully:", result);
+
+      Alert.alert("Success", "Event created successfully!", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      if (error.name === 'AbortError') {
+        Alert.alert(
+          "Connection Timeout",
+          "Could not connect to server. Make sure:\n1. Server is running (npm run server)\n2. Correct IP address in src/config/api.js\n3. Both devices on same network"
+        );
+      } else {
+        Alert.alert("Error", `Failed to create event: ${error.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -160,8 +232,16 @@ export default function CreateEventScreen({ route, navigation }) {
 
       {/* Buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.createBtn} onPress={handleSave}>
-          <Text style={styles.createText}>Create</Text>
+        <TouchableOpacity 
+          style={[styles.createBtn, loading && styles.createBtnDisabled]} 
+          onPress={handleSave}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.createText}>Create</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -227,6 +307,9 @@ const styles = StyleSheet.create({
   createText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  createBtnDisabled: {
+    opacity: 0.6,
   },
   cancel: {
     textAlign: "center",

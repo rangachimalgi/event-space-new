@@ -8,13 +8,17 @@ export default function EventCard({ event, onEdit, onDelete, onPress }) {
       {/* Top Row */}
       <View style={styles.topRow}>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{event.hall}</Text>
+          <Text style={styles.badgeText}>
+            {event.hallDisplay || (typeof event.hall === 'string' 
+              ? event.hall 
+              : event.hall?.name || 'Unknown Hall')}
+          </Text>
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
+          {/* <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
             <Ionicons name="create-outline" size={18} color="#2563eb" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity onPress={onDelete} style={styles.iconBtn}>
             <Ionicons name="trash-outline" size={18} color="#dc2626" />
@@ -24,7 +28,7 @@ export default function EventCard({ event, onEdit, onDelete, onPress }) {
 
       {/* Main Content */}
       <Text style={styles.title}>{event.name}</Text>
-      <Text style={styles.date}>{event.date}</Text>
+      <Text style={styles.date}>{event.dateDisplay || event.date || 'No date'}</Text>
 
     </TouchableOpacity>
   );

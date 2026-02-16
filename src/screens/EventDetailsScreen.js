@@ -6,13 +6,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
+import API_BASE_URL from "../config/api";
 
 export default function EventDetailsScreen({ route, navigation }) {
   const { event } = route.params;
+  
+  // Preserve original hall object structure
+  const originalHall = event.hall && typeof event.hall === 'object' 
+    ? event.hall 
+    : (event.hall && typeof event.hall === 'string' 
+      ? { name: event.hall } 
+      : event.hall || {});
+  
   // Add these inside your EventDetailsScreen component
   const [name, setName] = useState(event.name || "");
   const [phone, setPhone] = useState(event.phone || "");
@@ -20,22 +31,135 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [purohitphone, setPurohitPhone] = useState(event.purohitPhone || "");
   const [caterername, setCatererName] = useState(event.catererName || "");
   const [catererphone, setCatererPhone] = useState(event.catererPhone || "");
-  const [advance, setAdvance] = useState(event.advancePaid?.toString() || "");
+  const [advance, setAdvance] = useState(event.advance?.toString() || event.advancePaid?.toString() || "");
   const [balance, setBalance] = useState(event.balance?.toString() || "");
   const [notes, setNotes] = useState(event.notes || "");
-  const [date, setDate] = useState(
-    event.date ? new Date(event.date) : new Date(),
-  );
+  
+  // Parse date properly - handle both ISO strings and Date objects
+  const parseDate = (dateValue) => {
+    if (!dateValue) return new Date();
+    if (dateValue instanceof Date) return dateValue;
+    if (typeof dateValue === 'string') {
+      const parsed = new Date(dateValue);
+      // Check if date is valid (not NaN and not 1970)
+      if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1970) {
+        return parsed;
+      }
+    }
+    return new Date();
+  };
+  
+  const [date, setDate] = useState(parseDate(event.date));
   const [showPicker, setShowPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    console.log("Updated:", { name, phone, notes, date });
-    navigation.goBack();
+  const handleSave = async () => {
+    if (!name.trim() || !phone.trim()) {
+      Alert.alert("Error", "Please fill in devotee name and phone number");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const eventData = {
+        hall: originalHall, // Use preserved hall object
+        name: name.trim(),
+        phone: phone.trim(),
+        purohitName: purohitName.trim(),
+        purohitPhone: purohitphone.trim(),
+        catererName: caterername.trim(),
+        catererPhone: catererphone.trim(),
+        advance: advance.trim(),
+        balance: balance.trim(),
+        notes: notes.trim(),
+        date: date.toISOString(),
+      };
+
+      console.log("Updating event:", event.id, eventData);
+
+      // Add timeout to fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(`${API_BASE_URL}/events/${event.id || event._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update event: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("Event updated successfully:", result);
+
+      Alert.alert("Success", "Event updated successfully!", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      if (error.name === 'AbortError') {
+        Alert.alert("Connection Timeout", "Could not connect to server. Please try again.");
+      } else {
+        Alert.alert("Error", `Failed to update event: ${error.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = () => {
-    console.log("Deleted:", event);
-    navigation.goBack();
+    Alert.alert(
+      "Delete Event",
+      `Are you sure you want to delete "${name}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+              const response = await fetch(`${API_BASE_URL}/events/${event.id || event._id}`, {
+                method: "DELETE",
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+
+              if (!response.ok) {
+                throw new Error("Failed to delete event");
+              }
+
+              Alert.alert("Success", "Event deleted successfully", [
+                {
+                  text: "OK",
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } catch (error) {
+              console.error("Error deleting event:", error);
+              Alert.alert("Error", "Failed to delete event. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -49,7 +173,11 @@ export default function EventDetailsScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={20} color="#000" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>{event.hall}</Text>
+        <Text style={styles.title}>
+          {event.hallDisplay || (typeof event.hall === 'string' 
+            ? event.hall 
+            : event.hall?.name || 'Event Details')}
+        </Text>
         <Text style={styles.subtitle}>Edit Event Details</Text>
       </View>
 
@@ -70,9 +198,12 @@ export default function EventDetailsScreen({ route, navigation }) {
             <DateTimePicker
               value={date}
               mode="date"
-              onChange={(e, selected) => {
+              display="default"
+              onChange={(e, selectedDate) => {
                 setShowPicker(false);
-                if (selected) setDate(selected);
+                if (selectedDate) {
+                  setDate(selectedDate);
+                }
               }}
             />
           )}
@@ -168,8 +299,16 @@ export default function EventDetailsScreen({ route, navigation }) {
       </ScrollView>
       {/* Actions Row */}
       <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>Save Changes</Text>
+        <TouchableOpacity 
+          style={[styles.saveBtn, loading && styles.saveBtnDisabled]} 
+          onPress={handleSave}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveText}>Save Changes</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
@@ -261,5 +400,8 @@ const styles = StyleSheet.create({
   deleteText: {
     color: "#dc2626",
     fontWeight: "700",
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
   },
 });
