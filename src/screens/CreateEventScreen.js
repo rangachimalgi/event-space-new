@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -29,11 +29,80 @@ export default function CreateEventScreen({ route, navigation }) {
   const [balance, setBalance] = useState("");
   const [advance, setAdvance] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [dateConflict, setDateConflict] = useState(null); // null, false (available), or error message
+
+  // Check if the selected date is already booked for this hall
+  const checkDateAvailability = async (selectedDate) => {
+    if (!selectedDate || !hall?.id) return;
+
+    setCheckingAvailability(true);
+    setDateConflict(null);
+
+    try {
+      // Get all events for this hall
+      const response = await fetch(`${API_BASE_URL}/events`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to check availability');
+      }
+
+      const allEvents = await response.json();
+      
+      // Filter events for this hall
+      const hallEvents = allEvents.filter(event => event.hall?.id === hall.id);
+      
+      // Check if any event is on the same day
+      const selectedDateStr = new Date(selectedDate).toISOString().split('T')[0];
+      
+      const conflictingEvent = hallEvents.find(event => {
+        if (!event.date) return false;
+        const eventDate = new Date(event.date);
+        const eventDateStr = eventDate.toISOString().split('T')[0];
+        return eventDateStr === selectedDateStr;
+      });
+
+      if (conflictingEvent) {
+        const conflictMessage = `This hall is already booked on ${new Date(selectedDate).toLocaleDateString()}. Please select a different date.`;
+        setDateConflict(conflictMessage);
+        Alert.alert(
+          "Date Already Booked",
+          conflictMessage,
+          [{ text: "OK" }]
+        );
+      } else {
+        setDateConflict(false); // Date is available
+      }
+    } catch (error) {
+      console.error("Error checking date availability:", error);
+      // Don't block user if check fails, just log it
+      setDateConflict(null);
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  // Check availability when date changes
+  useEffect(() => {
+    if (date) {
+      checkDateAvailability(date);
+    }
+  }, [date]);
 
   const handleSave = async () => {
     // Validation
     if (!name.trim() || !phone.trim()) {
       Alert.alert("Error", "Please fill in devotee name and phone number");
+      return;
+    }
+
+    // Check if date is already booked
+    if (dateConflict && typeof dateConflict === 'string') {
+      Alert.alert(
+        "Date Already Booked",
+        dateConflict,
+        [{ text: "OK" }]
+      );
       return;
     }
 
@@ -75,8 +144,32 @@ export default function CreateEventScreen({ route, navigation }) {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create event: ${response.status} - ${errorText}`);
+        // Try to parse error message from response
+        let errorMessage = `Failed to create event (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If not JSON, try text
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        // Check if it's a conflict error (hall already booked)
+        if (response.status === 409) {
+          Alert.alert(
+            "Booking Conflict",
+            errorMessage,
+            [{ text: "OK" }]
+          );
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -126,18 +219,46 @@ export default function CreateEventScreen({ route, navigation }) {
         <View style={styles.form}>
           <Text style={styles.label}>Event Date</Text>
           <TouchableOpacity
-            style={styles.input}
+            style={[
+              styles.input,
+              dateConflict && typeof dateConflict === 'string' && styles.inputError
+            ]}
             onPress={() => setShowPicker(true)}
+            disabled={checkingAvailability}
           >
-            <Text>{date.toDateString()}</Text>
+            <View style={styles.dateInputContainer}>
+              <Text style={[
+                dateConflict && typeof dateConflict === 'string' && styles.dateTextError
+              ]}>
+                {date.toDateString()}
+              </Text>
+              {checkingAvailability && (
+                <ActivityIndicator size="small" color="#EF7B02" style={{ marginLeft: 8 }} />
+              )}
+            </View>
           </TouchableOpacity>
+          {dateConflict && typeof dateConflict === 'string' && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={16} color="#dc2626" />
+              <Text style={styles.errorText}>{dateConflict}</Text>
+            </View>
+          )}
+          {dateConflict === false && (
+            <View style={styles.successContainer}>
+              <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+              <Text style={styles.successText}>Date is available</Text>
+            </View>
+          )}
           {showPicker && (
             <DateTimePicker
               value={date}
               mode="date"
               onChange={(e, selected) => {
                 setShowPicker(false);
-                if (selected) setDate(selected);
+                if (selected) {
+                  setDate(selected);
+                  // Availability check will happen via useEffect
+                }
               }}
             />
           )}
@@ -233,9 +354,12 @@ export default function CreateEventScreen({ route, navigation }) {
       {/* Buttons */}
       <View style={styles.actions}>
         <TouchableOpacity 
-          style={[styles.createBtn, loading && styles.createBtnDisabled]} 
+          style={[
+            styles.createBtn, 
+            (loading || checkingAvailability || (dateConflict && typeof dateConflict === 'string')) && styles.createBtnDisabled
+          ]} 
           onPress={handleSave}
-          disabled={loading}
+          disabled={loading || checkingAvailability || (dateConflict && typeof dateConflict === 'string')}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -315,5 +439,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
     color: "#64748b",
+  },
+  dateInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  inputError: {
+    borderColor: "#dc2626",
+    borderWidth: 2,
+  },
+  dateTextError: {
+    color: "#dc2626",
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    padding: 8,
+    backgroundColor: "#fef2f2",
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: "#dc2626",
+  },
+  errorText: {
+    color: "#dc2626",
+    marginLeft: 6,
+    fontSize: 12,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    padding: 8,
+    backgroundColor: "#f0fdf4",
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: "#16a34a",
+  },
+  successText: {
+    color: "#16a34a",
+    marginLeft: 6,
+    fontSize: 12,
+    flex: 1,
   },
 });

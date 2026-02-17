@@ -69,11 +69,13 @@ app.use('/api/*', (req, res) => {
 });
 
 // Start server
-// On Render, bind to 0.0.0.0 to accept connections from outside
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+// Bind to 0.0.0.0 to accept connections from network (needed for Android devices/emulators)
+// In production (Render), this is required. In development, also needed for physical devices.
+const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`Server is running on ${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Server accessible at: http://localhost:${PORT} and http://192.168.1.3:${PORT}`);
   
   // Start keepAlive in production to prevent Render from spinning down
   if (process.env.NODE_ENV === 'production') {

@@ -93,8 +93,32 @@ export default function EventDetailsScreen({ route, navigation }) {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update event: ${response.status} - ${errorText}`);
+        // Try to parse error message from response
+        let errorMessage = `Failed to update event (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If not JSON, try text
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        // Check if it's a conflict error (hall already booked)
+        if (response.status === 409) {
+          Alert.alert(
+            "Booking Conflict",
+            errorMessage,
+            [{ text: "OK" }]
+          );
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

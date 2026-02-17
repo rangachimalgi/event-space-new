@@ -17,20 +17,21 @@ const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://event-spa
 
 // Force production mode (set to true to always use production API)
 // Set to true if you want to always use Render backend, even in development
-const FORCE_PRODUCTION = true; // Changed to true to always use production API
+const FORCE_PRODUCTION = false; // Set to false for local testing, true for production
 
 const getBaseURL = () => {
-  // Always check environment variable first (highest priority)
-  // This allows Netlify/Render to override the hardcoded URL
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    console.log('🌐 Using EXPO_PUBLIC_API_URL from environment:', process.env.EXPO_PUBLIC_API_URL);
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Check if we should force production mode
+  // Check if we should force production mode FIRST (before env var check)
+  // This allows local testing even if EXPO_PUBLIC_API_URL is set
   if (FORCE_PRODUCTION) {
     console.log('🔧 FORCE_PRODUCTION is enabled - using production API');
     return PRODUCTION_API_URL;
+  }
+
+  // Check environment variable (for production builds)
+  // Only use if not in development mode
+  if (process.env.EXPO_PUBLIC_API_URL && (process.env.NODE_ENV === 'production' || !__DEV__)) {
+    console.log('🌐 Using EXPO_PUBLIC_API_URL from environment:', process.env.EXPO_PUBLIC_API_URL);
+    return process.env.EXPO_PUBLIC_API_URL;
   }
 
   // For release builds (APK/IPA), __DEV__ will be false
