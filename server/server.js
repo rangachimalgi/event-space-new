@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import connectDB from './config/db.js';
 import eventRoutes from './routes/eventRoutes.js';
+import { startKeepAlive } from './utils/keepAlive.js';
 
 // Get current file directory
 const __filename = fileURLToPath(import.meta.url);
@@ -73,4 +74,9 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 app.listen(PORT, HOST, () => {
   console.log(`Server is running on ${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Start keepAlive in production to prevent Render from spinning down
+  if (process.env.NODE_ENV === 'production') {
+    startKeepAlive();
+  }
 });
