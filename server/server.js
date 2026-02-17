@@ -24,7 +24,12 @@ const PORT = process.env.PORT || 8000;
 connectDB();
 
 // Middleware
-app.use(cors());
+// CORS configuration - allow all origins for now (can be restricted in production)
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -45,7 +50,27 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/events', eventRoutes);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'production' ? {} : err.stack
+  });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ 
+    message: 'API endpoint not found',
+    path: req.path 
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// On Render, bind to 0.0.0.0 to accept connections from outside
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+app.listen(PORT, HOST, () => {
+  console.log(`Server is running on ${HOST}:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

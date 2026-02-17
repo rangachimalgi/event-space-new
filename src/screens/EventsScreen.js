@@ -30,8 +30,38 @@ export default function EventsScreen() {
       
       clearTimeout(timeoutId);
       
+      // Check content-type before parsing
+      const contentType = response.headers.get('content-type');
+      console.log("Response status:", response.status);
+      console.log("Response content-type:", contentType);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorText = await response.text();
+          console.error("Error response body:", errorText);
+          // If it's HTML, it's likely a 404 or server error page
+          if (errorText.trim().startsWith('<')) {
+            errorMessage = `Server returned HTML instead of JSON. This usually means:\n1. The API endpoint doesn't exist\n2. The server isn't running properly\n3. Check if the URL is correct: ${API_BASE_URL}/events`;
+          } else {
+            errorMessage = errorText;
+          }
+        } catch (e) {
+          console.error("Could not read error response:", e);
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Check if response is JSON
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error("Non-JSON response received:", text.substring(0, 200));
+        throw new Error(
+          `Server returned ${contentType || 'unknown content type'} instead of JSON.\n` +
+          `This usually means the API endpoint is incorrect or the server is returning an error page.\n` +
+          `Expected: ${API_BASE_URL}/events`
+        );
       }
       
       const data = await response.json();
@@ -66,10 +96,15 @@ export default function EventsScreen() {
           "Connection Timeout", 
           "Could not connect to server. Make sure:\n1. Server is running (npm run server)\n2. Correct IP address in src/config/api.js\n3. Both devices on same network"
         );
+      } else if (error.message.includes('JSON') || error.message.includes('Unexpected character')) {
+        Alert.alert(
+          "API Connection Error", 
+          `${error.message}\n\nThis usually means:\n1. The backend server isn't running on Render\n2. The API URL is incorrect\n3. The server is returning an error page\n\nCheck Render dashboard to ensure the service is running.`
+        );
       } else {
         Alert.alert(
           "Error", 
-          `Failed to load events: ${error.message}\n\nCheck if server is running on port 8000`
+          `Failed to load events: ${error.message}\n\nAPI URL: ${API_BASE_URL}/events`
         );
       }
       setAllEvents([]); // Set empty array on error
