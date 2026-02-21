@@ -13,6 +13,7 @@ export default function HomeScreen() {
   { id: "BIG_2", name: "Vrindavana Mini Hall", subname: "2nd Floor", icon: "business" },
   { id: "MINI_1", name: "Kamadhenu Main Hall", subname: "3rd Floor", icon: "business" },
   { id: "MINI_2", name: "Kamadhenu Mini Hall", subname: "3rd Floor", icon: "business" },
+  { id: "HOMA_1", name: "Homa Hall", subname: "4th Floor", icon: "business" },
 ];
 
 

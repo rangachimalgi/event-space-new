@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,40 +17,39 @@ export default function CalendarScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markedDates, setMarkedDates] = useState({});
+  const abortRef = useRef(null);
 
-  // Fetch events from API
-  const fetchEvents = async () => {
+  // Fetch events from API (only one trigger via useFocusEffect)
+  const fetchEvents = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       setLoading(true);
-      console.log("Fetching events for calendar...");
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
       const response = await fetch(`${API_BASE_URL}/events`, {
         signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Events fetched for calendar:", data.length);
       setEvents(data);
-      
-      // Process events to count bookings per date
       processEventsForCalendar(data);
     } catch (error) {
+      if (error.name === "AbortError") return;
       console.error("Error fetching events for calendar:", error);
       setEvents([]);
       setMarkedDates({});
     } finally {
-      setLoading(false);
+      if (abortRef.current === controller) {
+        setLoading(false);
+        abortRef.current = null;
+      }
     }
-  };
+  }, []);
 
   // Process events and create marked dates based on booking count
   const processEventsForCalendar = (eventsData) => {
@@ -98,17 +97,13 @@ export default function CalendarScreen({ navigation }) {
     setMarkedDates(marked);
   };
 
-  // Fetch events when screen comes into focus
+  // Fetch events when screen comes into focus; abort in-flight request when leaving
   useFocusEffect(
     useCallback(() => {
       fetchEvents();
-    }, [])
+      return () => abortRef.current?.abort();
+    }, [fetchEvents])
   );
-
-  // Also fetch on mount
-  useEffect(() => {
-    fetchEvents();
-  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
