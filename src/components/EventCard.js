@@ -28,6 +28,9 @@ export default function EventCard({ event, onEdit, onDelete, onPress }) {
 
       {/* Main Content */}
       <Text style={styles.title}>{event.name}</Text>
+      {event.phone ? (
+        <Text style={styles.phone}>{event.phone}</Text>
+      ) : null}
       <Text style={styles.date}>{event.dateDisplay || event.date || 'No date'}</Text>
 
     </TouchableOpacity>
@@ -67,6 +70,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginTop: 10,
+  },
+
+  phone: {
+    color: '#1e293b',
+    marginTop: 4,
+    fontSize: 14,
   },
 
   date: {
